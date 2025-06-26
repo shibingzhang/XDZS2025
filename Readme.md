@@ -33,7 +33,7 @@ The work uses intrinsic instructions to invoke MC operations. However, due to li
 
 For SGEMM, we use the intrinsic `__builtin_amdgcn_mmac_f32_16x16x8f32`. Based on NVIDIA GPU tensor core programming practices, this instruction requires each thread in a DCU wavefront (64 threads) to provide 2 FP32 elements for input matrix A, 2 FP32 elements for matrix B, and 4 FP32 elements for output matrix C via registers. However, due to the lack of official documentation on data layout, we reverse-engineered and experimentally determined the layout scheme, as illustrated in **Figure 1**.
 
-![实验报告绘图1](C:\Users\31888\Desktop\ppt参考资料\DCU资料\XDZS提交\实验报告绘图1.svg)
+![实验报告绘图1](./assets/Fig1.svg)
 
 **Figure 1.** Threads 0–63 represent the elements held by each thread in a wavefront. For example, thread 0 holds two elements of matrix A, two of matrix B, and four of matrix C.
 
@@ -45,7 +45,7 @@ Assuming a thread block processes a tile of size BM × BN, each wavefront handle
 
 The task partitioning is illustrated in **Figure 2**, with BM=256, BN=128, BK=16. Each thread block contains 8 wavefronts (512 threads), consumes 24KB of shared memory ((256+128)×16×4 bytes), and each thread uses 80 32-bit registers (4 × 2 + 4 × 2 + 4 × 4 × 4).
 
-![实验报告绘图2](C:\Users\31888\Desktop\ppt参考资料\DCU资料\XDZS提交\实验报告绘图2.svg)
+![实验报告绘图2](./assets/Fig2.svg)
 
 **Figure 2.** Tiles 0–7 represent the sub-tiles of matrix C processed by each wavefront within a thread block.
 
@@ -55,7 +55,7 @@ During computation above, tiles of input matrix A (BM × BK) and matrix B (BK ×
 
 To avoid this, we pad the BK dimension of tile_A_SMEM by 2 elements, allocating shared memory of size BM × (BK+2) but only using BM × BK. The extra two elements per row serve as padding to prevent bank conflicts. After padding, as shown in **Figure 3(b)**, the 64 threads can load 64 floats in two transactions of 32 floats each, achieving 100% shared memory bandwidth utilization.
 
-![实验报告绘图3](C:\Users\31888\Desktop\ppt参考资料\DCU资料\XDZS提交\实验报告绘图3.svg)
+![实验报告绘图3](./assets/Fig3.svg)
 
 **Figure 3.** In subfigures (a) and (b), the first row (0–31) represents register bank indices, while subsequent rows (0–63) denote thread indices within a wavefront. "P" indicates padded dummy data.
 
@@ -75,7 +75,7 @@ To obtain C^T, the SGEMM formula C = A × B is transformed to C^T = B^T × A^T. 
 
 **Figure 4** shows runtime statistics for DCU SGEMM tasks computing C[M, N]=A[M, K] × B[K, N]. MCv1 and MCv2 are two of our implementations—MCv1 targets cases with M, N<4096, while MCv2 is used otherwise. The SIMT implementation is our version without MMAC instructions, and hipBLAS is the official implemenation. The last two columns show speedup of the best MC implementation over the other two. Our MC implementations generally achieve up to 80% of hipBLAS performance across dimensions and surpass hipBLAS by 50% in some cases.
 
-![image-20250625185927304](C:\Users\31888\AppData\Roaming\Typora\typora-user-images\image-20250625185927304.png)
+![image-20250625185927304](./assets/Fig4.png)
 
 **Figure 4.** The running time of SGEMM with different M, N, K computation sizes.
 
