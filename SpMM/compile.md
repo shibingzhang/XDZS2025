@@ -1,4 +1,4 @@
-Compilation command: `hipcc -std=c++17 spmm.cpp -o spmm`
+Compilation command: `hipcc -std=c++17 spmm.cpp -o spmm -lhipsparse`
 
 Execution: `bash run.sh`
 
